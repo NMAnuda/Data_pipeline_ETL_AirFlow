@@ -1,0 +1,42 @@
+# ========================
+# Environment files
+# ========================
+.env
+.env.*
+
+# ========================
+# Python virtual env
+# ========================
+venv/
+env/
+.venv/
+
+# ========================
+# Python cache
+# ========================
+__pycache__/
+*.py[cod]
+
+# ========================
+# Jupyter
+# ========================
+.ipynb_checkpoints/
+
+# ========================
+# Logs
+# ========================
+*.log
+
+# ========================
+# Data files (optional – depends on project)
+# ========================
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# ========================
+# OS files
+# ========================
+.DS_Store
+Thumbs.db
