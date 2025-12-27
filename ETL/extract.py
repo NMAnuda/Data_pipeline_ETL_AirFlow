@@ -1,6 +1,6 @@
 import pandas as pd
 from load import get_engine
-from incremental import get_last_load_date, apply_incremental_filter, update_last_load_date  # Reuse
+from incremental import get_last_load_date, apply_incremental_filter, update_last_load_date
 
 def extract():
     engine = get_engine()
@@ -11,7 +11,7 @@ def extract():
     details = pd.read_csv('data/raw/Order Details.csv')
     targets = pd.read_csv('data/raw/Sales target.csv')
 
-    # FIXED: Filter ONLY orders by date (details has no 'Order Date')
+    # Filter ONLY orders by date (details has no 'Order Date')
     orders = apply_incremental_filter(orders, last_date, 'Order Date')
     print(f"New orders: {len(orders)} records")
 

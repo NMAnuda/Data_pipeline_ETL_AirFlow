@@ -8,6 +8,11 @@ def transform(orders_df, details_df, targets_df):
     details_df.columns = details_df.columns.str.strip()
     targets_df.columns = targets_df.columns.str.strip()
 
+    # Handle empty orders (incremental no new data)
+    if orders_df.empty:
+        print("No new orders — skipping transform.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
     # -------------------------------
     # 2. DATE FORMATTING
     # -------------------------------
@@ -16,11 +21,6 @@ def transform(orders_df, details_df, targets_df):
         dayfirst=True,
         errors='coerce'
     )
-
-    # Handle empty orders (incremental no new data)
-    if orders_df.empty:
-        print("No new orders — skipping transform.")
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     # -------------------------------
     # 3. DIM_CUSTOMERS
@@ -97,11 +97,7 @@ def transform(orders_df, details_df, targets_df):
 
     targets_df['month'] = targets_df['Month of Order Date'].str.extract(r'(\d+)').astype(int)
     
-    # FIXED: Handle empty orders_df
-    if orders_df.empty:
-        year = datetime.now().year  # Default current year
-    else:
-        year = orders_df['Order Date'].dt.year.mode()[0] if not orders_df['Order Date'].dt.year.mode().empty else datetime.now().year
+    year = orders_df['Order Date'].dt.year.mode()[0] if not orders_df['Order Date'].dt.year.mode().empty else datetime.now().year
     
     targets_df['year'] = year
 

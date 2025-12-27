@@ -4,6 +4,7 @@ import importlib
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from sqlalchemy import text
 
 default_args = {
     'owner': 'data-engineer',
@@ -17,12 +18,12 @@ default_args = {
 dag = DAG(
     'ecommerce_etl_pipeline',
     default_args=default_args,
-    description='Daily E-Commerce ETL with Quality Checks',
-    schedule_interval='0 2 * * *',  # Daily 2 AM
+    description='Daily Incremental E-Commerce ETL with Quality & Analytics',
+    schedule_interval='0 2 * * *',  # Daily at 2 AM
     catchup=False
 )
 
-# Helper to add path & dynamic import (no 'etl.' prefix — direct module name)
+# Helper to add path & dynamic import (no 'etl.' prefix)
 def add_etl_path_and_import(module_name):
     etl_path = '/opt/airflow/etl'
     if os.path.exists(etl_path):
@@ -33,11 +34,33 @@ def add_etl_path_and_import(module_name):
         if os.path.exists(local_path):
             sys.path.insert(0, local_path)
     print(f"ETL Path added: {etl_path if os.path.exists(etl_path) else local_path}")
-    # Dynamic import without 'etl.' (files are in path)
+    # Dynamic import
     module = importlib.import_module(module_name)
     return module
 
-# Task 1: Extract
+# Task 1: Check New Data (ShortCircuit — Skip if No New)
+def check_new_data(**context):
+    load_module = add_etl_path_and_import('load')
+    engine = load_module.get_engine()
+    incremental_module = add_etl_path_and_import('incremental')
+    last_date = incremental_module.get_last_load_date(engine)
+    # Simulate check (replace with real API/CSV timestamp)
+    extract_module = add_etl_path_and_import('extract')
+    orders, _, _ = extract_module.extract()
+    new_data_count = len(orders)
+    if new_data_count == 0:
+        print("No new data — skipping ETL.")
+        return False
+    print(f"New data: {new_data_count} records since {last_date}.")
+    return True
+
+check_task = PythonOperator(
+    task_id='check_new_data',
+    python_callable=check_new_data,
+    dag=dag
+)
+
+# Task 2: Extract
 def run_extract(**context):
     extract_module = add_etl_path_and_import('extract')
     return extract_module.extract()
@@ -48,7 +71,7 @@ extract_task = PythonOperator(
     dag=dag
 )
 
-# Task 2: Transform
+# Task 3: Transform
 def run_transform(**context):
     transform_module = add_etl_path_and_import('transform')
     orders, details, targets = context['task_instance'].xcom_pull(task_ids='extract_data')
@@ -61,7 +84,7 @@ transform_task = PythonOperator(
     dag=dag
 )
 
-# Task 3: Load
+# Task 4: Load
 def run_load(**context):
     load_module = add_etl_path_and_import('load')
     dims = context['task_instance'].xcom_pull(task_ids='transform_data')
@@ -73,7 +96,7 @@ load_task = PythonOperator(
     dag=dag
 )
 
-# Task 4: Quality Checks
+# Task 5: Quality Checks
 def run_quality(**context):
     load_module = add_etl_path_and_import('load')
     quality_module = add_etl_path_and_import('quality_checks')
@@ -87,5 +110,23 @@ quality_task = PythonOperator(
     dag=dag
 )
 
-# Dependencies
-extract_task >> transform_task >> load_task >> quality_task
+# Task 6: Refresh Analytical Views
+def refresh_views(**context):
+    load_module = add_etl_path_and_import('load')
+    engine = load_module.get_engine()
+
+    # engine.begin() handles commit/rollback automatically
+    with engine.begin() as conn:
+        conn.execute(text("REFRESH MATERIALIZED VIEW monthly_revenue_view;"))
+        conn.execute(text("REFRESH MATERIALIZED VIEW top_customers_view;"))
+
+    print("Analytical views refreshed! ✅")
+
+
+views_task = PythonOperator(
+    task_id='refresh_analytical_views',
+    python_callable=refresh_views,
+    dag=dag
+)
+# Dependencies (Full Chain)
+check_task >> extract_task >> transform_task >> load_task >> quality_task >> views_task

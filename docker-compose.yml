@@ -1,6 +1,6 @@
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:2.9.3  # Stable 2.x — avoids 3.x changes
+  image: apache/airflow:2.9.3
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -15,10 +15,9 @@ x-airflow-common:
     - ./etl:/opt/airflow/etl
     - ./data:/opt/airflow/data
     - ./sql:/docker-entrypoint-initdb.d
-    - ./.env:/opt/airflow/.env
+    - ./.env:/opt/airflow/.env  # NEW: Mount .env
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
-    &airflow-common-depends-on
     postgres:
       condition: service_healthy
 
@@ -41,7 +40,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: webserver  # Stays 'webserver' in 2.x
+    command: webserver
     ports:
       - 8080:8080
     healthcheck:
@@ -49,6 +48,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+      start_period: 60s  # Buffer for startup
     restart: always
 
   airflow-scheduler:
@@ -59,7 +59,6 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-      start_period: 60s
     restart: always
 
 volumes:

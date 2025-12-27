@@ -1,6 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine
-from load import get_engine  # Reuse your DB engine (from etl/load.py)
+from load import get_engine  # Reuse
 
 def get_last_load_date(engine):
     """Get last successful load date from tracker table."""
