@@ -1,6 +1,5 @@
 import pandas as pd
-
-
+import datetime
 def transform(orders_df, details_df, targets_df):
     # -------------------------------
     # 1. CLEAN COLUMN NAMES
@@ -13,11 +12,15 @@ def transform(orders_df, details_df, targets_df):
     # 2. DATE FORMATTING
     # -------------------------------
     orders_df['Order Date'] = pd.to_datetime(
-    orders_df['Order Date'],
-    dayfirst=True,
-    errors='coerce'
-)
+        orders_df['Order Date'],
+        dayfirst=True,
+        errors='coerce'
+    )
 
+    # Handle empty orders (incremental no new data)
+    if orders_df.empty:
+        print("No new orders — skipping transform.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     # -------------------------------
     # 3. DIM_CUSTOMERS
@@ -93,11 +96,19 @@ def transform(orders_df, details_df, targets_df):
     targets_df['Month of Order Date'] = targets_df['Month of Order Date'].astype(str)
 
     targets_df['month'] = targets_df['Month of Order Date'].str.extract(r'(\d+)').astype(int)
-    targets_df['year'] = orders_df['Order Date'].dt.year.mode()[0]
+    
+    # FIXED: Handle empty orders_df
+    if orders_df.empty:
+        year = datetime.now().year  # Default current year
+    else:
+        year = orders_df['Order Date'].dt.year.mode()[0] if not orders_df['Order Date'].dt.year.mode().empty else datetime.now().year
+    
+    targets_df['year'] = year
 
     fact_sales_targets = targets_df[['month', 'year', 'Category', 'Target']]
-    fact_sales_targets = fact_sales_targets.copy().rename(columns={
-    'Category': 'category',
-    'Target': 'target'
-}, inplace=False)
+    fact_sales_targets.rename(columns={
+        'Category': 'category',
+        'Target': 'target'
+    }, inplace=True)
+
     return dim_customers, dim_products, dim_date, fact_orders, fact_sales_targets
