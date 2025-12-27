@@ -4,13 +4,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 def get_engine():
+    load_dotenv()  # Ensure loaded
+    host = os.getenv('DB_HOST')
+    port = os.getenv('DB_PORT')
+    name = os.getenv('DB_NAME')
+    user = os.getenv('DB_USER')
+    password = os.getenv('DB_PASSWORD')
+    print(f"DEBUG: Host={host}, Port={port}, Name={name}, User={user}")  # Temp debug
+    if port is None:
+        port = '5432'  # Fallback
     return create_engine(
-        f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
-        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}"
     )
-
 
 def load_table(df, table_name, engine):
     df.to_sql(

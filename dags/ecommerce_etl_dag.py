@@ -1,3 +1,8 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append('/opt/airflow/etl')  # Fix for Docker path
+
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -28,7 +33,7 @@ dag = DAG(
 # Task 1: Extract
 extract_task = PythonOperator(
     task_id='extract_data',
-    python_callable=lambda: extract(),  # Returns tuples, but we chain
+    python_callable=extract,  # Fixed: No lambda needed
     dag=dag
 )
 
@@ -36,7 +41,7 @@ extract_task = PythonOperator(
 def run_transform(**context):
     orders, details, targets = context['task_instance'].xcom_pull(task_ids='extract_data')
     dim_customers, dim_products, dim_date, fact_orders, fact_targets = transform(orders, details, targets)
-    return [dim_customers, dim_products, dim_date, fact_orders, fact_targets]  # Pass to next
+    return [dim_customers, dim_products, dim_date, fact_orders, fact_targets]
 
 transform_task = PythonOperator(
     task_id='transform_data',
@@ -47,7 +52,7 @@ transform_task = PythonOperator(
 # Task 3: Load
 def run_load(**context):
     dims = context['task_instance'].xcom_pull(task_ids='transform_data')
-    load(*dims)  # Unpack the list
+    load(*dims)
 
 load_task = PythonOperator(
     task_id='load_data',

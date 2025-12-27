@@ -96,9 +96,8 @@ def transform(orders_df, details_df, targets_df):
     targets_df['year'] = orders_df['Order Date'].dt.year.mode()[0]
 
     fact_sales_targets = targets_df[['month', 'year', 'Category', 'Target']]
-    fact_sales_targets.rename(columns={
-        'Category': 'category',
-        'Target': 'target'
-    }, inplace=True)
-
+    fact_sales_targets = fact_sales_targets.copy().rename(columns={
+    'Category': 'category',
+    'Target': 'target'
+}, inplace=False)
     return dim_customers, dim_products, dim_date, fact_orders, fact_sales_targets

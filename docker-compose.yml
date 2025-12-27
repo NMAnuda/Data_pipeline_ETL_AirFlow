@@ -1,8 +1,6 @@
-version: '3.8'
 x-airflow-common:
   &airflow-common
-  # Use latest stable: 3.1.5 (supports Python 3.13 equiv in container)
-  image: apache/airflow:3.1.5
+  image: apache/airflow:2.9.3  # Stable 2.x — avoids 3.x changes
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -10,14 +8,14 @@ x-airflow-common:
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    # Basic auth (no fcntl drama)
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
-    - ./etl:/opt/airflow/etl  # Your Python ETL
-    - ./data:/opt/airflow/data  # Raw CSVs
-    - ./sql:/docker-entrypoint-initdb.d  # Auto-run schema.sql!
+    - ./etl:/opt/airflow/etl
+    - ./data:/opt/airflow/data
+    - ./sql:/docker-entrypoint-initdb.d
+    - ./.env:/opt/airflow/.env
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -30,11 +28,11 @@ services:
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow  # Airflow's metadata (your ecommerce_dw created via schema.sql)
+      POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # Access local PG at localhost:5433 if needed
+      - "5433:5432"
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
@@ -43,7 +41,7 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    command: webserver
+    command: webserver  # Stays 'webserver' in 2.x
     ports:
       - 8080:8080
     healthcheck:
