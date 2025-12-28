@@ -3,3 +3,4 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 apache-airflow
+s3fs
