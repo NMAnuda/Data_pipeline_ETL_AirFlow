@@ -1,6 +1,7 @@
 import sys
 import os
 import importlib
+import subprocess
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -23,28 +24,20 @@ dag = DAG(
     catchup=False
 )
 
-# Helper to add path & dynamic import (no 'etl.' prefix)
+# Helper: Add ETL path and import module dynamically
 def add_etl_path_and_import(module_name):
     etl_path = '/opt/airflow/etl'
-    if os.path.exists(etl_path):
-        if etl_path not in sys.path:
-            sys.path.insert(0, etl_path)
-    else:
-        local_path = os.path.join(os.path.dirname(__file__), '..', 'etl')
-        if os.path.exists(local_path):
-            sys.path.insert(0, local_path)
-    print(f"ETL Path added: {etl_path if os.path.exists(etl_path) else local_path}")
-    # Dynamic import
+    if os.path.exists(etl_path) and etl_path not in sys.path:
+        sys.path.insert(0, etl_path)
     module = importlib.import_module(module_name)
     return module
 
-# Task 1: Check New Data (ShortCircuit — Skip if No New)
+# Task 1: Check for new data
 def check_new_data(**context):
     load_module = add_etl_path_and_import('load')
     engine = load_module.get_engine()
     incremental_module = add_etl_path_and_import('incremental')
     last_date = incremental_module.get_last_load_date(engine)
-    # Simulate check (replace with real API/CSV timestamp)
     extract_module = add_etl_path_and_import('extract')
     orders, _, _ = extract_module.extract()
     new_data_count = len(orders)
@@ -110,23 +103,46 @@ quality_task = PythonOperator(
     dag=dag
 )
 
-# Task 6: Refresh Analytical Views
+# Task 6: Run dbt
+def run_dbt():
+    import subprocess
+    import os
+
+    dbt_dir = "/opt/airflow/ecommerce_dbt"
+    os.environ["DBT_PROFILES_DIR"] = dbt_dir
+
+    result = subprocess.run(
+        ["dbt", "run", "--project-dir", dbt_dir, "--profiles-dir", dbt_dir],
+        capture_output=True,
+        text=True
+    )
+
+    print(result.stdout)
+
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr)
+
+
+dbt_task = PythonOperator(
+    task_id='run_dbt',
+    python_callable=run_dbt,
+    dag=dag
+)
+
+# Task 7: Refresh Analytical Views
 def refresh_views(**context):
     load_module = add_etl_path_and_import('load')
     engine = load_module.get_engine()
-
-    # engine.begin() handles commit/rollback automatically
     with engine.begin() as conn:
         conn.execute(text("REFRESH MATERIALIZED VIEW monthly_revenue_view;"))
         conn.execute(text("REFRESH MATERIALIZED VIEW top_customers_view;"))
-
     print("Analytical views refreshed! ✅")
-
 
 views_task = PythonOperator(
     task_id='refresh_analytical_views',
     python_callable=refresh_views,
     dag=dag
 )
-# Dependencies (Full Chain)
-check_task >> extract_task >> transform_task >> load_task >> quality_task >> views_task
+
+# Set dependencies
+check_task >> extract_task >> transform_task >> load_task >> quality_task >> dbt_task >> views_task

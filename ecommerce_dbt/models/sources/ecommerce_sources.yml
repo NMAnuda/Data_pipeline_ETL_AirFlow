@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: ecommerce
+    schema: public
+    tables:
+      - name: fact_orders
+      - name: fact_sales_targets
+      - name: dim_customers
+      - name: dim_products
+      - name: dim_date

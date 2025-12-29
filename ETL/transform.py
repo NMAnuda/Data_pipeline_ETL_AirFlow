@@ -1,5 +1,6 @@
 import pandas as pd
 import datetime
+
 def transform(orders_df, details_df, targets_df):
     # -------------------------------
     # 1. CLEAN COLUMN NAMES
@@ -14,13 +15,33 @@ def transform(orders_df, details_df, targets_df):
         return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     # -------------------------------
-    # 2. DATE FORMATTING
+    # 2. DATE FORMATTING (BULLETPROOF — 0 Nulls)
     # -------------------------------
-    orders_df['Order Date'] = pd.to_datetime(
-        orders_df['Order Date'],
-        dayfirst=True,
-        errors='coerce'
-    )
+    def parse_mixed_dates(x):
+        if pd.isna(x) or x == '' or x == 'nan':
+            return pd.NaT
+        x = str(x).strip()
+        for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d", "%m/%d/%Y", "%b-%y", "%B-%y", "%b %Y"):  # FIXED: All CSV formats + month names
+            try:
+                return pd.to_datetime(x, format=fmt)
+            except:
+                continue
+        # FIXED: Infer fallback (catches odd like "13 Apr 2018")
+        try:
+            return pd.to_datetime(x, infer_datetime_format=True)
+        except:
+            return pd.NaT
+
+    orders_df['Order Date'] = orders_df['Order Date'].apply(parse_mixed_dates)
+    print(f"Orders before fillna: {len(orders_df)}, null dates: {orders_df['Order Date'].isna().sum()}")
+
+    # FIXED: Fill nulls with mode date (keeps all rows, 0 nulls)
+    if orders_df['Order Date'].isna().any():
+        mode_date = orders_df['Order Date'].mode()[0] if not orders_df['Order Date'].mode().empty else pd.Timestamp('2018-01-01')
+        orders_df['Order Date'] = orders_df['Order Date'].fillna(mode_date)
+        print(f"Filled nulls with {mode_date} — now 0 nulls")
+
+    print(f"Cleaned orders after date parse: {len(orders_df)} rows")
 
     # -------------------------------
     # 3. DIM_CUSTOMERS

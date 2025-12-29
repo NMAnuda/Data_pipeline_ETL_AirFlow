@@ -1,5 +1,6 @@
 import pandas as pd
 from load import get_engine
+from datetime import datetime
 from incremental import (
     get_last_load_date,
     apply_incremental_filter,
@@ -34,18 +35,22 @@ def extract():
         storage_options=storage_options
     )
 
+    def parse_mixed_dates(x):
+        for fmt in ("%d-%m-%Y", "%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(x, fmt)
+            except:
+                continue
+        return pd.NaT
     # Convert date BEFORE filtering
-    orders['Order Date'] = pd.to_datetime(
-        orders['Order Date'],
-        dayfirst=True
-    )
+    
+    orders['Order Date'] = orders['Order Date'].apply(parse_mixed_dates)
 
     # Incremental filter
-    orders = apply_incremental_filter(
-        orders,
-        last_date,
-        'Order Date'
-    )
+    orders = apply_incremental_filter(orders, last_date, 'Order Date')
+
+    if orders.empty:
+        print("⚠️ No new orders found after incremental filter")
     print(f"New orders: {len(orders)} records")
 
     # Filter details for new orders only

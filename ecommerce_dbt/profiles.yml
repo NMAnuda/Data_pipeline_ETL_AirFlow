@@ -1,0 +1,21 @@
+ecommerce_dbt:
+  target: dev  # Default for Docker/Airflow
+  outputs:
+    dev:  # Docker config (Airflow/DAG uses this)
+      type: postgres
+      host: postgres  # Docker service name
+      user: postgres
+      password: "17970"
+      port: 5432  # Internal Docker port
+      dbname: ecommerce_dw
+      schema: public
+      threads: 1
+    dev-local:  # Local config (Windows/VSCode — FIXED port 5433)
+      type: postgres
+      host: localhost  # Local exposed host
+      user: postgres
+      password: "17970"
+      port: 5433  # FIXED: Exposed port in docker-compose (5433:5432)
+      dbname: ecommerce_dw
+      schema: public
+      threads: 1
