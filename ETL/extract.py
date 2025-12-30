@@ -50,7 +50,7 @@ def extract():
     orders = apply_incremental_filter(orders, last_date, 'Order Date')
 
     if orders.empty:
-        print("⚠️ No new orders found after incremental filter")
+        print(" No new orders found after incremental filter")
     print(f"New orders: {len(orders)} records")
 
     # Filter details for new orders only

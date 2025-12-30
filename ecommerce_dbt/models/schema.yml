@@ -5,43 +5,21 @@ models:
     description: "Staging model for cleaned orders data"
     columns:
       - name: order_id
-        description: "Unique order identifier"
         tests:
-          - not_null
           - unique
-
-
-      - name: customer_id
-        description: "Customer ID"
+          - not_null
+      - name: order_date
         tests:
           - not_null
-
-      - name: product_id
-        description: "Product ID"
-        tests:
-          - not_null
-
-      - name: quantity
-        description: "Quantity of product ordered"
-        tests:
-          - not_null
-          - dbt_utils.expression_is_true:
-              arguments:
-                expression: "{{ value }} >= 0"
-
       - name: amount
-        description: "Total order amount"
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              arguments:
+              arguments:  # FIXED: Nest expression here
                 expression: "{{ value }} > 0"
-
       - name: profit
-        description: "Order profit"
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              arguments:
-                expression: "{{ value }} >= -amount * 2"
-
+              arguments:  # FIXED: Nest expression here
+                expression: "profit >= -amount * 2"

@@ -112,7 +112,7 @@ def run_dbt():
     os.environ["DBT_PROFILES_DIR"] = dbt_dir
 
     result = subprocess.run(
-        ["dbt", "run", "--project-dir", dbt_dir, "--profiles-dir", dbt_dir],
+        ["dbt", "run", "--project-dir", dbt_dir, "--profiles-dir", dbt_dir ,"--target", "dev"],
         capture_output=True,
         text=True
     )

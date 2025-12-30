@@ -18,7 +18,4 @@ clean-targets:
 
 models:
   ecommerce_dbt:
-    staging:
-      +materialized: table
-    analytics:
-      +materialized: table
+    +materialized: table
