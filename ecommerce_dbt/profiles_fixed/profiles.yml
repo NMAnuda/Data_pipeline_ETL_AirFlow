@@ -1,0 +1,22 @@
+ecommerce_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: postgres
+      port: 5432
+      user: airflow
+      password: airflow
+      dbname: ecommerce_dw
+      schema: public
+      threads: 1
+
+    dev-local:
+      type: postgres
+      host: localhost
+      port: 5433
+      user: postgres
+      password: "17970"
+      dbname: ecommerce_dw
+      schema: public
+      threads: 1

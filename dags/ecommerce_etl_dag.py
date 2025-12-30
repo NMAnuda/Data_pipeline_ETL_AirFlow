@@ -5,6 +5,7 @@ import subprocess
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from sqlalchemy import text
 
 default_args = {
@@ -104,28 +105,32 @@ quality_task = PythonOperator(
 )
 
 # Task 6: Run dbt
-def run_dbt():
-    import subprocess
+def _dbt_command():
+    """Helper to build dbt command based on environment."""
     import os
 
     dbt_dir = "/opt/airflow/ecommerce_dbt"
-    os.environ["DBT_PROFILES_DIR"] = dbt_dir
+    # Prefer explicit DBT_TARGET env var, then detect running in container via /.dockerenv
+    target = os.environ.get('DBT_TARGET')
+    if not target:
+        target = 'dev' if os.path.exists('/.dockerenv') else 'dev-local'
 
-    result = subprocess.run(
-        ["dbt", "run", "--project-dir", dbt_dir, "--profiles-dir", dbt_dir ,"--target", "dev"],
-        capture_output=True,
-        text=True
-    )
-
-    print(result.stdout)
-
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr)
+    profiles_dir = os.path.join(dbt_dir, 'profiles_fixed')
+    cmd = f"dbt run --project-dir {dbt_dir} --profiles-dir {profiles_dir} --target {target}"
+    return cmd
 
 
-dbt_task = PythonOperator(
+dbt_bin = '/home/airflow/.local/bin/dbt'
+default_path = '/home/airflow/.local/bin:' + os.environ.get('PATH', '')
+
+dbt_task = BashOperator(
     task_id='run_dbt',
-    python_callable=run_dbt,
+    bash_command=_dbt_command(),
+    env={
+        'DBT_PROFILES_DIR': '/opt/airflow/ecommerce_dbt/profiles_fixed',
+        'PATH': default_path,
+        'DBT_BIN': dbt_bin
+    },
     dag=dag
 )
 
