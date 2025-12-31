@@ -37,5 +37,38 @@ This repository contains a data pipeline project for e-commerce data. It impleme
 
 ---
 
-## Repository Structure
+---
+
+## Setup Instructions
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Python 3.8+
+- dbt (installed in the container)
+
+
+### Run Pipeline Locally
+
+1. Start Docker services:
+
+```bash
+docker compose up -d
+docker compose run --rm airflow-webserver airflow db init
+docker exec -it <airflow-webserver-container> bash
+cd /opt/airflow/ecommerce_dbt
+dbt run --target dev
+
+```
+Notes
+
+All fact and dimension tables are appended incrementally; previous data is preserved.
+
+Analytical views are refreshed after every successful DAG run.
+
+dbt models depend on fact_orders and other source tables created by the ETL scripts.
+
+
+
+
 
