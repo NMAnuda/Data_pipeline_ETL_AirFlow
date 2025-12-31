@@ -68,6 +68,9 @@ Analytical views are refreshed after every successful DAG run.
 
 dbt models depend on fact_orders and other source tables created by the ETL scripts.
 
+![](./image/image2.png)
+![](./image/image1.png)
+
 
 
 
