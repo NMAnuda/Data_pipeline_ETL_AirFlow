@@ -19,16 +19,16 @@ def get_engine():
 def load(dim_customers, dim_products, dim_date, fact_orders, fact_targets):
     engine = get_engine()
     with engine.begin() as conn:
-        # FIXED: No TRUNCATE or UPSERT — Simple append (keeps previous data)
+        
         print("Appending to existing tables (no delete/upsert)")
 
-        # Append dims (unique, no dups)
+        # Append dims
         dim_customers.to_sql('dim_customers', con=engine, if_exists='append', index=False, chunksize=1000, method='multi')
         dim_products.to_sql('dim_products', con=engine, if_exists='append', index=False, chunksize=1000, method='multi')
         dim_date.to_sql('dim_date', con=engine, if_exists='append', index=False, chunksize=1000, method='multi')
         fact_targets.to_sql('fact_sales_targets', con=engine, if_exists='append', index=False, chunksize=1000, method='multi')
 
-        # Append fact_orders (simple — no upsert for now)
+        # Append fact_orders 
         fact_orders.to_sql('fact_orders', con=engine, if_exists='append', index=False, chunksize=1000, method='multi')
         
         print(f"Appended: customers={len(dim_customers)}, products={len(dim_products)}, orders={len(fact_orders)}")
