@@ -33,4 +33,4 @@ def load(dim_customers, dim_products, dim_date, fact_orders, fact_targets):
         
         print(f"Appended: customers={len(dim_customers)}, products={len(dim_products)}, orders={len(fact_orders)}")
     
-    print("✅ Data loaded successfully into PostgreSQL (appended)")
+    print(" Data loaded successfully into PostgreSQL (appended)")
